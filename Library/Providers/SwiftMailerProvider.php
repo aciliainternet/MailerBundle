@@ -1,6 +1,7 @@
 <?php
 namespace Acilia\Bundle\MailerBundle\Library\Providers;
 
+use Acilia\Bundle\MailerBundle\Library\Exceptions\IncorrectMessageTypeException;
 use Acilia\Bundle\MailerBundle\Library\Providers\Interfaces\DefaultProviderInterface;
 use Swift_Message as Message;
 use Swift_Mailer;
