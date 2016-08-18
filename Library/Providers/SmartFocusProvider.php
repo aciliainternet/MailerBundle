@@ -7,6 +7,8 @@ use Acilia\Bundle\MailerBundle\Library\Exceptions\IncorrectMessageTypeException;
 
 class SmartFocusProvider implements DefaultProviderInterface
 {
+    const SUCCESS_MESSAGE = '<?xml version="1.0" encoding="utf-8" standalone="yes"?><MultiSendRequestResponse/>';
+
     public function newMessage()
     {
         return new Message();
@@ -37,7 +39,7 @@ class SmartFocusProvider implements DefaultProviderInterface
 
         curl_close($ch);
 
-        return $output;
+        return strcmp($output, SELF::SUCCESS_MESSAGE) == 0;
     }
 
     public function getName()
