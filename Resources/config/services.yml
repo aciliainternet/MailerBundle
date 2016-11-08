@@ -9,6 +9,10 @@ services:
         tags :
             - { name: acilia.mailer.factory }
 
+    acilia.mailer.member.factory:
+        class : Acilia\Bundle\MailerBundle\Service\MemberService
+        tags :
+            - { name: acilia.mailer.member.factory }
 
     #
     # Providers
@@ -24,3 +28,14 @@ services:
         arguments: ["@mailer"]
         tags :
             - { name: acilia.mailer.provider }
+
+
+    #
+    # Members
+    #
+
+    acilia.mailer.member.smart_focus:
+        class : Acilia\Bundle\MailerBundle\Library\Members\SmartFocusMember
+        arguments: ["%acilia_mailer.smartfocus_member.server%"]
+        tags :
+            - { name: acilia.mailer.member }
