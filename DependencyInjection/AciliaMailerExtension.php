@@ -31,6 +31,6 @@ class AciliaMailerExtension extends Extension
         $processor = new Processor();
         $config = $processor->processConfiguration($configuration, $configs);
 
-        $container->setParameter('acilia_mailer.smartfocus_member.server', $config['assets_dir']);
+	$container->setParameter('acilia_mailer.smartfocus_member.server', $config['member']['server']);
     }
 }
