@@ -172,7 +172,8 @@ Content-Type: text/xml
     <fileName>%member_file%</fileName>
     <fileEncoding>UTF-8</fileEncoding>
     <separator>,</separator>
-    <dateFormat>dd/mm/yyyy HH:mi</dateFormat>
+    <dateFormat>dd/mm/yyyy HH24:mi</dateFormat>
+    <skipFirstLine>true</skipFirstLine>
     <mapping>
         %mapping%
     </mapping>
