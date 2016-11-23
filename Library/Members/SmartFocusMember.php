@@ -9,6 +9,7 @@ use Exception;
 class SmartFocusMember implements DefaultMemberInterface
 {
     private $server = null;
+    private $api;
 
     private $_login;
     private $_pwd;
@@ -20,6 +21,7 @@ class SmartFocusMember implements DefaultMemberInterface
     public function __construct($server)
     {
         $this->server = $server;
+        $this->api = 'apimember';
     }
 
     /**
@@ -39,6 +41,15 @@ class SmartFocusMember implements DefaultMemberInterface
         return 'smart_focus_member';
     }
 
+    public function setApi($api)
+    {
+        if ($api == 'batch') {
+            $this->api = 'apibatchmember';
+        } else {
+            $this->api = 'apimember';
+        }
+    }
+
     public function openConnection($login, $pwd, $key)
     {
         if (empty($login) || empty($pwd) || empty($key)) {
@@ -50,9 +61,9 @@ class SmartFocusMember implements DefaultMemberInterface
         $this->_key = $key;
 
         $url = str_replace(
-            ['{server}', '{login}', '{password}', '{key}'],
-            [$this->server, $this->_login, $this->_pwd, $this->_key],
-            'https://{server}/apibatchmember/services/rest/connect/open/{login}/{password}/{key}');
+            ['{server}', '{api}', '{login}', '{password}', '{key}'],
+            [$this->server, $this->api, $this->_login, $this->_pwd, $this->_key],
+            'https://{server}/{api}/services/rest/connect/open/{login}/{password}/{key}');
 
         $response = $this->_request($url);
         if ($response) {
@@ -75,9 +86,9 @@ class SmartFocusMember implements DefaultMemberInterface
         if ($this->_signedIn) {
 
             $url = str_replace(
-                ['{server}', '{token}'],
-                [$this->server, $this->_token],
-                'https://{server}/apibatchmember/services/rest/connect/close/{token}');
+                ['{server}', '{api}', '{token}'],
+                [$this->server, $this->api, $this->_token],
+                'https://{server}/{api}/services/rest/connect/close/{token}');
 
             $response = $this->_request($url);
             if ($response) {
@@ -100,9 +111,9 @@ class SmartFocusMember implements DefaultMemberInterface
     public function insertMembers($header, $data)
     {
         $url = str_replace(
-            ['{server}', '{token}'],
-            [$this->server, $this->_token],
-            'https://{server}/apibatchmember/services/rest/batchmemberservice/{token}/batchmember/insertUpload');
+            ['{server}', '{api}', '{token}'],
+            [$this->server, $this->api, $this->_token],
+            'https://{server}/{api}/services/rest/batchmemberservice/{token}/batchmember/insertUpload');
 
         $boundary = md5(time());
 
@@ -126,6 +137,37 @@ class SmartFocusMember implements DefaultMemberInterface
             $response = simplexml_load_string($response);
             if ($response and $response['responseStatus'] == 'success') {
                 return;
+            } else {
+                throw new SmartFocusResponseException(sprintf('Cannot ingest members into API connection: %s', (string)$response->description));
+            }
+
+        } else {
+            throw new SmartFocusResponseException('Cannot ingest members into API connection: Malformed XML response received.');
+        }
+    }
+
+    public function insertSingleMember($email, $data)
+    {
+        $url = str_replace(
+            ['{server}', '{api}', '{token}'],
+            [$this->server, $this->api, $this->_token],
+            'https://{server}/{api}/services/rest/member/insertMember/{token}');
+
+        // single payload
+        $body = $this->_getSingleData($email, $data);
+
+        // member put options
+        $options = [
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_HTTPHEADER => ['Content-Type: application/xml;', 'Accept: application/xml']
+        ];
+
+        $response = $this->_request($url, 'POST', $body, $options);
+        if ($response) {
+            $response = simplexml_load_string($response);
+            if ($response and $response['responseStatus'] == 'success') {
+                return (string)$response->result;
+
             } else {
                 throw new SmartFocusResponseException(sprintf('Cannot ingest members into API connection: %s', (string)$response->description));
             }
@@ -159,6 +201,29 @@ class SmartFocusMember implements DefaultMemberInterface
         curl_close($curl);
 
         return $response;
+    }
+
+    private function _getSingleData($email, $data)
+    {
+        $configData = <<<EOD
+<?xml version="1.0" encoding="UTF-8"?>
+<synchroMember>
+    <dynContent>
+        %entries%
+    </dynContent>
+    <email>%email%</email>
+</synchroMember>
+EOD;
+
+        $entries = [];
+        foreach ($data as $key => $value) {
+            $entries[] = sprintf('<entry><key>%s</key><value>%s</value></entry>', $key, $value);
+        }
+
+        $configData = str_replace('%entries%', implode(PHP_EOL, $entries), $configData);
+        $configData = str_replace('%email%', $email, $configData);
+
+        return $configData;
     }
 
     private function _getConfigData($member, $header)
