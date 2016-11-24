@@ -73,11 +73,11 @@ class SmartFocusMember implements DefaultMemberInterface
                 $this->_signedIn = true;
 
             } else {
-                throw new SmartFocusResponseException(sprintf('Cannot open API connection: %s', (string)$response->description));
+                throw new SmartFocusResponseException(sprintf('[SF-API] Cannot open API connection: %s', (string)$response->description));
             }
 
         } else {
-            throw new SmartFocusResponseException('Cannot open API connection: Malformed XML response received.');
+            throw new SmartFocusResponseException('[SF-API] Cannot open API connection: Malformed XML response received.');
         }
     }
 
@@ -92,18 +92,17 @@ class SmartFocusMember implements DefaultMemberInterface
 
             $response = $this->_request($url);
             if ($response) {
-
                 $response = simplexml_load_string($response);
                 if ($response and $response['responseStatus'] == 'success') {
                     $this->_token = null;
                     $this->_signedIn = false;
 
                 } else {
-                    throw new SmartFocusResponseException(sprintf('Cannot close API connection: %s', (string)$response->description));
+                    throw new SmartFocusResponseException(sprintf('[SF-API] Cannot close API connection: %s', (string)$response->description));
                 }
 
             } else {
-                throw new SmartFocusResponseException('Cannot close API connection: Malformed XML response received.');
+                throw new SmartFocusResponseException('[SF-API] Cannot close API connection: Malformed XML response received.');
             }
         }
     }
@@ -138,11 +137,11 @@ class SmartFocusMember implements DefaultMemberInterface
             if ($response and $response['responseStatus'] == 'success') {
                 return;
             } else {
-                throw new SmartFocusResponseException(sprintf('Cannot ingest members into API connection: %s', (string)$response->description));
+                throw new SmartFocusResponseException(sprintf('[SF-API] Cannot mass ingest members: %s', (string)$response->description));
             }
 
         } else {
-            throw new SmartFocusResponseException('Cannot ingest members into API connection: Malformed XML response received.');
+            throw new SmartFocusResponseException('[SF-API] Cannot mass ingest members: Malformed XML response received.');
         }
     }
 
@@ -153,10 +152,10 @@ class SmartFocusMember implements DefaultMemberInterface
             [$this->server, $this->api, $this->_token],
             'https://{server}/{api}/services/rest/member/insertMember/{token}');
 
-        // single payload
+        // single member payload
         $body = $this->_getSingleData($email, $data);
 
-        // member put options
+        // single member post options
         $options = [
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_HTTPHEADER => ['Content-Type: application/xml;', 'Accept: application/xml']
@@ -169,11 +168,33 @@ class SmartFocusMember implements DefaultMemberInterface
                 return (string)$response->result;
 
             } else {
-                throw new SmartFocusResponseException(sprintf('Cannot ingest members into API connection: %s', (string)$response->description));
+                throw new SmartFocusResponseException(sprintf('[SF-API] Cannot ingest single member: %s', (string)$response->description));
             }
 
         } else {
-            throw new SmartFocusResponseException('Cannot ingest members into API connection: Malformed XML response received.');
+            throw new SmartFocusResponseException('[SF-API] Cannot ingest single member: Malformed XML response received.');
+        }
+    }
+
+    public function removeSingleMember($email)
+    {
+        $url = str_replace(
+            ['{server}', '{api}', '{token}', '{email}'],
+            [$this->server, $this->api, $this->_token, $email],
+            'https://{server}/{api}/services/rest/member/unjoinByEmail/{token}/{email}');
+
+        $response = $this->_request($url);
+        if ($response) {
+            $response = simplexml_load_string($response);
+            if ($response and $response['responseStatus'] == 'success') {
+                return (string)$response->result;
+
+            } else {
+                throw new SmartFocusResponseException(sprintf('[SF-API] Cannot remove single member: %s', (string)$response->description));
+            }
+
+        } else {
+            throw new SmartFocusResponseException('[SF-API] Cannot remove single member: Malformed XML response received.');
         }
     }
 
